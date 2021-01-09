@@ -1,0 +1,15 @@
+{
+  "name": "fspuptests",
+  "version": "1.0.0",
+  "description": "Testing node file system and puppeteer",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "klm929",
+  "license": "ISC",
+  "dependencies": {
+    "node": "^14.7.0",
+    "puppeteer": "^5.2.1"
+  }
+}
