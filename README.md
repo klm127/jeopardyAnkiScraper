@@ -12,11 +12,13 @@ Run npm install from the root directory. This will install puppeteer and other d
 
 ## select a game to turn into flashcards
 
-1.) Go to j-archive.org to see the many jeopardy games archived there. When you see the one you are interested in, make note of the "game_id" parameter in the url. 
-2.) Copy the game_id value from the url to line 5 of index.js for the variable SHOWNUMBER (a misnomer - game_id and shownumber are not the same. To be corrected later). This will direct the scraper to scrape that webpage for jeopardy questions, answers, question values, and contestants.
+<ol>
+<li> Go to j-archive.org to see the many jeopardy games archived there. When you see the one you are interested in, make note of the "game_id" parameter in the url. </li>
+<li>Copy the game_id value from the url to line 5 of index.js for the variable SHOWNUMBER (a misnomer - game_id and shownumber are not the same. To be corrected later). This will direct the scraper to scrape that webpage for jeopardy questions, answers, question values, and contestants.</li>
+</ol>
 ## execute scraping
 To execute the program, run:
- node index.js
+`node index.js`
 from the directory.
 
 A new file .csv will appear in your directory ending with the game_id you selected for targetting.
