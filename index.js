@@ -1,23 +1,20 @@
+// dependencies
 const fs = require('fs')
 const puppeteer = require('puppeteer');
 const { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } = require('constants');
 
-const SHOWNUMBER = 3709;
 
-const url = "http://www.j-archive.com/showgame.php?game_id=" + SHOWNUMBER;
+//change this value to the number corresponding to game id of show page which you wish to scrape.
+const game_id = 3709;
 
-console.log("--FS PUP Tests, index.js, & puppet loaded--");
 
-console.log("Attempting to initialize puppeteer");
+// build the url from the game id
+const url = "http://www.j-archive.com/showgame.php?game_id=" + game_id;
+// this is where .csv files will be saved.
+const saveLocation = "rounds\jeopardy-round" + game_id + ".csv"; 
 
-var categories = [];
-var clues = [];
-var answers = [];
-var correctContestants = [];
-var incorrectContestants = [];
-var show = "";
-var csvrows = [];
 
+/** this try/async block uses puppeteer to scrape the given url */
 try {
     (async () => {
         const browser = await puppeteer.launch();
@@ -28,7 +25,7 @@ try {
         console.log("Page went to url", url);
         
         console.log("Attempting to scrape show");
-        Csvrow.gameName = await page.evaluate( () => {
+        gamename = await page.evaluate( () => {
             let elment = document.getElementById("game_title").childNodes[0];
             let str = elment.innerHTML;
             //let si = str.indexOf(">");
@@ -36,7 +33,9 @@ try {
             //return str.slice(si+1,li);
             return str;
         });
-        console.log("Show retrieved: ", Csvrow.gameName);
+        game = new jGame(gamename);
+        
+        console.log("Show retrieved: ", gamename);
 
         console.log("Attempting to scrape contestants");
         Csvrow.contestantReference = await page.evaluate( () => {
@@ -152,12 +151,9 @@ try {
         console.log("Filling csvrows with corresponding contestants");
         Csvrow.fillContestants(concatContestants, csvrows);
 
-        console.log("Turning to file string.")
-        //console.log( Csvrow.makeFileString(csvrows));
-        //console.log("Here are the csvrows retrieved:", csvrows);
-        //console.log("Here is the final csvrow", csvrows[csvrows.length-1]);
         console.log("Saving file.");
-        saveFile( "temp\jeopardy-round" + SHOWNUMBER + ".csv", Csvrow.makeFileString(csvrows));
+        saveFile(saveLocation, bigstring);
+        console.log("saved as " + savelocation);
 
         await browser.close();
         console.log("Browser closed");
@@ -166,167 +162,49 @@ try {
     console.log("There was an error scraping!");
     console.error(err);
 }
-
-class Csvrow {
-
-    static nums = 0;
-
-    static gameName = " ";
-
-    static contestantReference = [];
-
+// holds clues, answers, and values
+class jSquare {
     constructor() {
-        this.clue = "missing clue";
-        this.answer = "missing answer";
-        this.category = "missing category";
-        this.value = " ";
-        this.col = 0;
-        this.row = 0;
-        this.round = "FJ";
-        this.contestant = "";
-        Csvrow.nums++;
+        this.clue = "";
+        this.answer = "";
+        this.value = 0;
+        this.contestant = []; //contestants who answered correct; will be an array of 1 or 0 except for FJ
     }
-
-    loadClue(pclue) {
-        this.clue = pclue["clue"];
-        let loc = pclue["location"].split("_");
-        this.round = loc[1];
-        if(this.round != "FJ") {
-            this.col = parseInt(loc[2]);
-            this.row = parseInt(loc[3]);
-            if(this.round == "J") {
-                this.value = this.row * 200;
-            }
-            else if(this.round == "DJ") {
-                this.value = this.row * 400;
-            }               
-        }
+}
+//holds jsquares, category name, and column index of that category, 0-5
+class jCategory {
+    constructor() {
+        this.name = "";
+        this.index = 0;
+        this.jSquares = [];
     }
-
-    static fillContestants(contestants, csvrowArray) {
-
-        Csvrow.sortByScore(csvrowArray);
-        //round column row
-        let contestantsAligned = contestants.map( (element) => {
-            let loc = element.location.split("_");
-            return {"round":loc[1],"col":parseInt(loc[2]),"row":parseInt(loc[3]),"contestant":element.contestant}
-        }); 
-        Csvrow.sortByScore(contestantsAligned);
-
-        //console.log(contestantsAligned);
-        //console.log("Contestants length:", contestantsAligned.length);
-
-        function* coughRow(csvrowArray) {
-            for(let i = 0; i < csvrowArray.length; i++) {
-                //console.log("coughing row: (round,col,row)", csvrowArray[i].round, csvrowArray[i].col, csvrowArray[i].row);
-                yield csvrowArray[i];
-            }
-        }
-        function* coughContestant(contestantsAligned) {
-            for(let i = 0; i < contestantsAligned.length; i++) {
-                //console.log("coughing cont: ", contestantsAligned[i]);
-                yield contestantsAligned[i];
-            }
-        }
-        const rowObjs = coughRow(csvrowArray);
-        const contestantObjs = coughContestant(contestantsAligned);
-
-        let contestantTest = contestantObjs.next();
-        for(let i=0; i<contestants.length; i++) {
-            //console.log(contestantTest.value.contestant, contestantTest.value.round, contestantTest.value.col, contestantTest.value.row);
-            let rowTest = rowObjs.next();
-            //console.log(rowTest.value.contestant, rowTest.value.round, rowTest.value.col, rowTest.value.row);
-            //console.log("contestantTest is ", contestantTest);
-            if( contestantTest.value.row == rowTest.value.row && contestantTest.value.col == rowTest.value.col) {
-                //console.log("Match!");
-                rowTest.value.contestant = contestantTest.value.contestant;
-                //console.log("Rowtest: ", rowTest, "contestantTest: ", contestantTest);
-                contestantTest = contestantObjs.next();
-            }
-            else {
-                //console.log("No match!");
-            }
-        }
-
-        for(let i = 0; i < csvrowArray.length; i++) {
-            let test = csvrowArray[i].contestant;
-            for(let j = 0; j < Csvrow.contestantReference.length; j++) {
-                if( test == Csvrow.contestantReference[j].contestant) {
-                    csvrowArray[i].contestant = Csvrow.contestantReference[j].contestantFullName + Csvrow.contestantReference[j].job;
-                }               
-            }
-        }
-
-        //console.log(csvrowArray);
+}
+// holds jcategories and round name
+class jRound {
+    constructor() {
+        this.name = ""; //should be SJ, DJ, or FJ
+        this.jCategories = [];
     }
-
-
-
-    static fillAnswers(answers, csvrowArray) {
-        //console.log("Static method Fill answers called");
-        //console.log("answers[0] = ", answers[0]);
-        //console.log("answers[last] = ", answers[answers.length-1]);
-
-        answers = answers.map( (answer) => {
-            let ansar = answer.location.split("_");
-            let r = ansar[1];
-            let c = parseInt(ansar[2]);
-            let row = parseInt(ansar[3]);
-
-            return {"round":r,"col":c,"row":row,"answer":answer.answer};
-        });
-        //console.log(answers);
-        Csvrow.sortByScore(answers);
-        Csvrow.sortByScore(csvrowArray);
-
-        for(let y = 0; y < answers.length; y++) {
-            csvrowArray[y].answer = answers[y].answer;
-        }
-
-        //csvrowArray.forEach( (ea) => { console.log(ea.round, ea.col, ea.row);})
-        //console.log(answers);
-        //console.log("Csv row array: ", csvrowArray);
-        //console.log("Csv select", csvrowArray.map( (ele) => { return {"round":ele.round,"col":ele.col,"row":ele.row,"answer":ele.answer}}))
-        console.log(Csvrow.nums, "csvrows have been created");
+}
+// holds shownumber, showdate, jRounds and jContestants
+class jGame {
+    constructor(showname) {
+        this.showName = showname;
+        this.jRounds = [];
+        this.jContestants = [];
     }
-    static sortByScore(csvrowArray) {
-        
-        csvrowArray.sort( (a,b) => {
- 
-            function roundScore(round) {
-                if(round == 'J') {
-                    return 100;
-                }
-                else if(round == 'DJ') {
-                    return 200;
-                }
-                else {
-                    return 300;
-                }
-            }
-            //console.log("a",a,"b",b)
-            let aval = roundScore(a.round) + a.col*10 + a.row*1;
-            let bval = roundScore(b.round) + b.col*10 + b.row*1;
-            //console.log("a is - ", a.round, a.col, a.row, " - aval is - ", aval);
-            //console.log("b is - ", b.round, b.col, b.row, " - bval is - ", bval);
-            if( aval < bval ) { return -1}
-            else if( bval < aval ) { return 1 }
-            else if ( aval == bval ) {return 0}  
-        });
-
-        //console.log("last elm sorted:",csvrowArray[csvrowArray.length - 1]);
-
-    }
-
-    static makeFileString(csvRowArray) {
-        let stringArray = csvRowArray.map( (csvrow) => {
-            return csvrow.clue + "~" + csvrow.answer + "~" + csvrow.category + "~" + csvrow.value + "~" + csvrow.round + "~" + csvrow.contestant + "~" + Csvrow.gameName;
-        });
-        return stringArray.join("\n");
-
+}
+// holds fullname of contestant, shortname of contestant, their job, their winnings
+class jContestant {
+    constructor() {
+        this.fullName = "unamed";
+        this.shortname = "shortname";
+        this.job = "a something";
+        this.winnings = 0;
     }
 }
 
+//path is the save path, bigstring is all the .csv data
 function saveFile(path, bigstring) {
     try {
         fs.writeFileSync(path, bigstring);
@@ -336,7 +214,4 @@ function saveFile(path, bigstring) {
     } 
 }
 
-console.log("This code is out of the async func");
-
-// write to file
-/* */
+console.log("Scraping complete.");
