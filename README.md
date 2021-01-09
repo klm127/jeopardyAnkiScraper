@@ -8,16 +8,16 @@ Scrapes j-archive with puppeteer for jeopardy questions and puts them in a .csv 
 Have npm installed.
 Have Anki installed.
 
-Use git clone https://github.com/klm127/jeopardyAnkiScraper.git to create the directory.
+Use `git clone https://github.com/klm127/jeopardyAnkiScraper.git` to create the directory.
 
-Run npm install from the root directory. This will install puppeteer and other dependencies. I am not including the dependencies pre-packaged for now to keep the repo size down. 
+Run `npm install` from the root directory. This will install puppeteer and other dependencies. I am not including the dependencies pre-packaged for now to keep the repo size down. 
 
 ### select a game to turn into flashcards
 
 - Go to j-archive.org to see the many jeopardy games archived there. When you see the one you are interested in, make note of the "game_id" parameter in the url. 
 ![urlbar](/screenshots/urlbar.png)
 
-- Copy the game_id value from the url to line 5 of index.js for the variable SHOWNUMBER (a misnomer - game_id and shownumber are not the same. To be corrected later). This will direct the scraper to scrape that webpage for jeopardy questions, answers, question values, and contestants.
+- Copy the game_id value from the url to line 5 of index.js for the variable SHOWNUMBER (a misnomer - game_id and shownumber are not the same. To be corrected later). This will direct the scraper to scrape that webpage for jeopardy questions, answers, question values, and contestants. 
 ![line5](/screenshots/line5.png)
 
 ### execute scraping
