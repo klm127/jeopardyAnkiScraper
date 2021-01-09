@@ -2,7 +2,7 @@ const fs = require('fs')
 const puppeteer = require('puppeteer');
 const { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } = require('constants');
 
-const SHOWNUMBER = 6445;
+const SHOWNUMBER = 6449;
 
 const url = "http://www.j-archive.com/showgame.php?game_id=" + SHOWNUMBER;
 
