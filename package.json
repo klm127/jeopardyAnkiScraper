@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "node": "^14.7.0",
-    "puppeteer": "^5.2.1"
+    "puppeteer": "^5.2.1",
+    "jsdom": "^16.4.0"
   }
 }

@@ -30,8 +30,7 @@ try {
                 constructor() {
                     this.round = "SJ";
                     this.categories = [];
-                    this.row1
-                    this.clues = [[]];
+                    this.clues = [];
                 }
                 parseCategories(round) {
                     let catelems = round.getElementsByClassName("category_name");
@@ -41,9 +40,10 @@ try {
                 }
                 parseRow(index, row) {
                     function parseClue(clueElement) {
-                        var newClue = ["0","none","blank","blank"] //{orderNumber:"0",correct:"None",clue:"blank",answer:"blank"};
+                        let newClue = {order:"0",contestant:"contestant",clue:"clue",answer:"answer"}
                         try {
-                            newClue[0] = clueElement.getElementsByClassName("clue_order_number").childNodes[0].innerHTML;
+                            newClue.order = clueElement.getElementsByClassName("clue_order_number")[0].childNodes[0].innerHTML;
+                            newClue.clue = clueElement.getElementsByClassName("clue_text")[0].innerHTML;
                         } catch(e) {
                         }
                         return newClue;
@@ -61,12 +61,21 @@ try {
             let values200 = round.childNodes[2]; //200 dollar clue row
             jr.parseRow(0,values200);
             let values400 = round.childNodes[4]; //400 dollar clue row
+            //jr.parseRow(1,values400);
             let values600 = round.childNodes[6]; //600 dollar clue row
+            //jr.parseRow(2,values600);
             let values800 = round.childNodes[8]; //800 dollar clue row
+            //jr.parseRow(3,values800);
             let values1000 = round.childNodes[10]; //1000 dollar clue row
+            //jr.parseRow(4,values1000);
+
+            //jr.parseFlippedRow(0,values200);
+            // now we mouseover the clues in the round
+
             return jr;
         });
         console.log(singleJelement);
+        console.log(singleJelement.clues);
         await browser.close();
     })()
 } catch(err) {
