@@ -1,32 +1,43 @@
-const fs = require('fs')
-const puppeteer = require('puppeteer');
-const jsdom = require("jsdom");
+/* ~~  Jeopardy Anki Scraper  ~~
+ *
+ * Scrapes a page on j-archive.com for data about a jeopardy game. Stores the data in a .csv
+ * compatibile with Anki flashcard program. Anki is available at available at apps.ankiweb.net.
+ *
+ * Created by klm127 in 2020 for the purposes of learning more about javascript, scraping, and
+ * to get better at jeopardy and trivia generally. 
+*/
+
+const fs = require('fs') // for csv read/writing
+const puppeteer = require('puppeteer'); // headless chromium browser for scraping
+const jsdom = require("jsdom"); // turns raw html into simulated elements similar to DOMParser
 const { exception } = require('console');
+const { Z_UNKNOWN } = require('zlib');
 const {JSDOM} = jsdom;
 
+//change this value to the number corresponding to game id in the url of show page which you wish to scrape.
+const GAME_ID = 2539;
 
-//change this value to the number corresponding to game id of show page which you wish to scrape.
-const game_id = 2539;
+//the character which will delimit fields in the .csv. It will be removed from strings prior to being put in csv
+const DELIMITER = ';'
 
-
-// build the url from the game id
-const url = "http://www.j-archive.com/showgame.php?game_id=" + game_id;
 // this is where .csv files will be saved.
-const saveLocation = "rounds\jeopardy-round" + game_id + ".csv"; 
+const SAVEPATH = "rounds/jeopardy-round" + GAME_ID + ".csv"; 
 
-/** this try/async block uses puppeteer to scrape the given url */
+const URL = "http://www.j-archive.com/showgame.php?game_id=" + GAME_ID;
+
+
 console.log("starting.");
 
 //these are the data structures we will use for processing the html data into objects
-
 class gameClue {
     constructor() {
-        this.contestant = "no contestant";
+        this.round = 'NJ';
         this.order = "0";
         this.value = "0";
         this.category = "no cat";
         this.clue = "no clue";
-        this.correct_response = "no answer";
+        this.correct_response = "no answer"; // dont change this default as its the filter
+        this.contestant = "no contestant";
     }
 
     parseUnflipped(tdClue) { //parameter is a td element of class clue
@@ -56,6 +67,12 @@ class gameClue {
             console.log("couldn't correct contestant, possible triple stumper");
             this.contestant = "Triple Stumper";
         }
+    }
+    toCSVstring(dc) { //dc is the delimiting character between csv fields. Comma not recommended
+        return this.round + dc + this.order + dc + this.value + dc + this.clear(this.category, dc) + dc + this.clear(this.clue, dc) + dc + this.clear(this.correct_response, dc) + dc + this.clear(this.contestant,dc);
+    }
+    clear(str_prop, delim_char) { 
+        return str_prop.replace(delim_char, '');
     }
 }
 
@@ -113,11 +130,12 @@ class contestantParser {
         //class score_player_nickname and score_positive
     }
     getFullName(aName) {
-        this.contestants.foreach( c => {
-            if(c.shortname == aName) {
-                return c.fullnameandjob;
-            } 
-        });
+        let s = '';
+        for( let i = 0; i < this.contestants.length; i ++ ) {
+            if (this.contestants[i].shortname = aName) {
+                return this.contestants[i].fullnameandjob;
+            }
+        }
         return "unknown";
     }
 }
@@ -139,7 +157,6 @@ class gameRound {
             this.parseUnflipped();
             this.parseFlipped();
         }
-        this.addGameInfoToClues();
     }
     parseUnflippedFinal() {
         let dom = new JSDOM(this.unflippedRawHTML);
@@ -203,14 +220,26 @@ class gameRound {
         }
         this.rows[rowIndex] = clues;
     }
-    addGameInfoToClues() {
+    addGameInfoToClues(contestantParser) {
+        let newclues = [];
         //add categories to clues, then add clue values to clues
         this.rows.forEach( (row,rowindex) => {
             row.forEach( (clue, columnindex) => {
+                clue.round = this.round;
                 clue.value = this.getClueValue(rowindex);
                 clue.category = this.categories[columnindex];
+                if( clue.correct_response != "no answer") {
+                    newclues.push(clue);
+                }
+                clue.contestant = contestantParser.getFullName(clue.contestant);
             });
         });
+        newclues.sort( (a,b) => {
+            if (+a.order < +b.order) { return -1;}
+            if (+a.order > +b.order) { return 1; }
+            return 0;
+        });
+        this.rows = newclues;
     }
     getClueValue(rowindex) {
         if(this.round == "FJ") {
@@ -222,6 +251,13 @@ class gameRound {
         else {
             return "$" + `${(rowindex+1) * 400}`;
         }
+    }
+    toCSVstring(dc) { //dc is delimiting character, for passing through to clues
+        let largestring = '';
+        this.rows.forEach( (clue) => {
+            largestring += clue.toCSVstring(dc) + '\n';
+        });
+        return largestring;
     }
 }
 
@@ -276,6 +312,13 @@ class gameParser {
         gameParser.singleJeopardy.parse();
         gameParser.finalJeopardy.parse();
         gameParser.contestantParser.parse();
+        gameParser.singleJeopardy.addGameInfoToClues(this.contestantParser);
+        gameParser.finalJeopardy.addGameInfoToClues(this.contestantParser);
+    }
+    static toCSVstring(delim_char) {
+        return gameParser.singleJeopardy.toCSVstring(delim_char) + 
+                gameParser.doubleJeopardy.toCSVstring(delim_char) +
+                gameParser.finalJeopardy.toCSVstring(delim_char);
     }
 }
 
@@ -287,17 +330,29 @@ try {
         console.log("Browser loaded");
         const page = await browser.newPage();
         console.log("Page loaded");
-        await page.goto(url);
-        console.log("Page went to url", url);        
+        await page.goto(URL);
+        console.log("Page went to url", URL);        
         console.log("Attempting to scrape show");
 
         await gameParser.parse(page);
         await browser.close();
         gameParser.process();
-        console.log(gameParser.finalJeopardy);
+        let filetext = gameParser.toCSVstring(DELIMITER);
+        saveFile(SAVEPATH, filetext);
+        //console.log(gameParser.singleJeopardy);
         console.log("Browser closed");
     })()
 } catch(err) {
     console.log("There was an error scraping!");
     console.error(err);
+}
+
+
+function saveFile(path, bigstring) {
+    try {
+        fs.writeFileSync(path, bigstring);
+    }
+    catch(ex) {
+        console.log("Error writing file! ", ex);
+    } 
 }
