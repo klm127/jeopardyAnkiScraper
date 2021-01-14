@@ -70,7 +70,7 @@ class gameClue {
         }
     }
     toCSVstring(dc) { //dc is the delimiting character between csv fields. Comma not recommended
-        return this.round + dc + this.order + dc + this.clear(this.value,dc) + dc + this.clear(this.category, dc) + dc + this.clear(this.clue, dc) + dc + this.clear(this.correct_response, dc) + dc + this.clear(this.contestant,dc) + dc + this.clear(this.gameName, dc);
+        return this.clear(this.clue, dc) + dc + this.round + dc + this.order + dc + this.clear(this.value,dc) + dc + this.clear(this.category, dc) + dc + this.clear(this.correct_response, dc) + dc + this.clear(this.contestant,dc) + dc + this.clear(this.gameName, dc);
     }
     clear(str_prop, delim_char) { 
         return str_prop.split(delim_char).join(''); //one way to eliminate all the delim chars
