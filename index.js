@@ -38,6 +38,7 @@ class gameClue {
         this.clue = "no clue";
         this.correct_response = "no answer"; // dont change this default as its the filter
         this.contestant = "no contestant";
+        this.gameName = "no game name";
     }
 
     parseUnflipped(tdClue) { //parameter is a td element of class clue
@@ -69,7 +70,7 @@ class gameClue {
         }
     }
     toCSVstring(dc) { //dc is the delimiting character between csv fields. Comma not recommended
-        return this.round + dc + this.order + dc + this.clear(this.value,dc) + dc + this.clear(this.category, dc) + dc + this.clear(this.clue, dc) + dc + this.clear(this.correct_response, dc) + dc + this.clear(this.contestant,dc);
+        return this.round + dc + this.order + dc + this.clear(this.value,dc) + dc + this.clear(this.category, dc) + dc + this.clear(this.clue, dc) + dc + this.clear(this.correct_response, dc) + dc + this.clear(this.contestant,dc) + dc + this.clear(this.gameName, dc);
     }
     clear(str_prop, delim_char) { 
         return str_prop.split(delim_char).join(''); //one way to eliminate all the delim chars
@@ -219,7 +220,7 @@ class gameRound {
         }
         this.rows[rowIndex] = clues;
     }
-    addGameInfoToClues(contestantParser) {
+    addGameInfoToClues(contestantParser, gameName) {
         let newclues = [];
         //add categories to clues, then add clue values to clues
         this.rows.forEach( (row,rowindex) => {
@@ -227,6 +228,7 @@ class gameRound {
                 clue.round = this.round;
                 clue.value = this.getClueValue(rowindex);
                 clue.category = this.categories[columnindex];
+                clue.gameName = gameName;
                 if( clue.correct_response != "no answer") {
                     newclues.push(clue);
                 }
@@ -238,6 +240,9 @@ class gameRound {
             if (+a.order > +b.order) { return 1; }
             return 0;
         });
+        if(this.round == "FJ") {
+            newclues[0].contestant = "Final"
+        }
         this.rows = newclues;
     }
     getClueValue(rowindex) {
@@ -273,6 +278,7 @@ class gameParser {
         gameParser.gameName = await page.evaluate( () => {
             return document.getElementById("game_title").childNodes[0].innerHTML;
         });
+        gameParser.gameName = "<a href = \"" + URL + "\">" + gameParser.gameName + "</a>";
 
         gameParser.contestantParser.introRawHTML = await page.evaluate( () => {
             let jbox = document.getElementById("contestants_table");
@@ -280,6 +286,10 @@ class gameParser {
         });
         gameParser.singleJeopardy.unflippedRawHTML = await page.evaluate( () => {
             let jround = document.getElementById("jeopardy_round");
+            return jround.innerHTML;
+        });
+        gameParser.doubleJeopardy.unflippedRawHTML = await page.evaluate( () => {
+            let jround = document.getElementById("double_jeopardy_round");
             return jround.innerHTML;
         });
         gameParser.finalJeopardy.unflippedRawHTML = await page.evaluate( () => {
@@ -298,6 +308,10 @@ class gameParser {
             let jround = document.getElementById("jeopardy_round");
             return jround.innerHTML;
         });
+        gameParser.doubleJeopardy.flippedRawHTML = await page.evaluate(() => {
+            let jround = document.getElementById("double_jeopardy_round");
+            return jround.innerHTML;
+        });
         gameParser.finalJeopardy.flippedRawHTML = await page.evaluate( () => {
             let jround = document.getElementById("final_jeopardy_round");
             return jround.innerHTML;
@@ -309,10 +323,12 @@ class gameParser {
     }
     static process() {
         gameParser.singleJeopardy.parse();
+        gameParser.doubleJeopardy.parse();
         gameParser.finalJeopardy.parse();
         gameParser.contestantParser.parse();
-        gameParser.singleJeopardy.addGameInfoToClues(this.contestantParser);
-        gameParser.finalJeopardy.addGameInfoToClues(this.contestantParser);
+        gameParser.singleJeopardy.addGameInfoToClues(this.contestantParser, gameParser.gameName);
+        gameParser.doubleJeopardy.addGameInfoToClues(this.contestantParser, gameParser.gameName);
+        gameParser.finalJeopardy.addGameInfoToClues(this.contestantParser, gameParser.gameName);
     }
     static toCSVstring(delim_char) {
         return gameParser.singleJeopardy.toCSVstring(delim_char) + 
