@@ -15,10 +15,10 @@ const { Z_UNKNOWN } = require('zlib');
 const {JSDOM} = jsdom;
 
 //change this value to the number corresponding to game id in the url of show page which you wish to scrape.
-const GAME_ID = 2539;
+const GAME_ID = 6758
 
 //the character which will delimit fields in the .csv. It will be removed from strings prior to being put in csv
-const DELIMITER = ';'
+const DELIMITER = ','
 
 // this is where .csv files will be saved.
 const SAVEPATH = "rounds/jeopardy-round" + GAME_ID + ".csv"; 
@@ -69,10 +69,10 @@ class gameClue {
         }
     }
     toCSVstring(dc) { //dc is the delimiting character between csv fields. Comma not recommended
-        return this.round + dc + this.order + dc + this.value + dc + this.clear(this.category, dc) + dc + this.clear(this.clue, dc) + dc + this.clear(this.correct_response, dc) + dc + this.clear(this.contestant,dc);
+        return this.round + dc + this.order + dc + this.clear(this.value,dc) + dc + this.clear(this.category, dc) + dc + this.clear(this.clue, dc) + dc + this.clear(this.correct_response, dc) + dc + this.clear(this.contestant,dc);
     }
     clear(str_prop, delim_char) { 
-        return str_prop.replace(delim_char, '');
+        return str_prop.split(delim_char).join(''); //one way to eliminate all the delim chars
     }
 }
 
@@ -130,13 +130,12 @@ class contestantParser {
         //class score_player_nickname and score_positive
     }
     getFullName(aName) {
-        let s = '';
         for( let i = 0; i < this.contestants.length; i ++ ) {
-            if (this.contestants[i].shortname = aName) {
+            if (this.contestants[i].shortname == aName) {
                 return this.contestants[i].fullnameandjob;
             }
         }
-        return "unknown";
+        return "Triple Stumper";
     }
 }
 //parses the HTML for each round, holds categories and clues, adds categories and values to clues
@@ -167,14 +166,14 @@ class gameRound {
             this.categories[i] = cats[i].innerHTML;
         }
         let row = document.firstChild;
-        this.parseRowUnflipped(row);
+        this.parseRowUnflipped(row, 0);
     }
     parseFlippedFinal() {
         let dom = new JSDOM(this.flippedRawHTML);
         this.flippedRawHTML = "";    
         let document = dom.window.document;
         let row = document.firstChild;
-        this.parseRowFlipped(row);
+        this.parseRowFlipped(row,0);
     }
     parseUnflipped() {
         let dom = new JSDOM(this.unflippedRawHTML);
